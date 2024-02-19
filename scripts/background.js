@@ -3,6 +3,9 @@ const GOOGLE_API_KEY = '';
 // Receive list of supported languages and put it in the storage
 chrome.runtime.onInstalled.addListener(handleInstalled);
 
+// Re-run content script when new video starts
+chrome.tabs.onUpdated.addListener(handleUpdated);
+
 // Handle the message sent by the toggle input from the popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     handleMessage(message, sendResponse);
@@ -102,5 +105,19 @@ async function handleInstalled() {
         });
     } catch (error) {
         console.error(error);
+    }
+}
+
+async function handleUpdated(tabId, changeInfo) {
+    if (changeInfo.url) {
+        const { enabled = false } = await chrome.storage.local.get(['enabled']);
+        if (enabled) {
+            try {
+                await unregisterContentScripts();
+                await registerAndExecuteContentScript(tabId);
+            } catch (error) {
+                console.error(error);
+            }
+        }
     }
 }
